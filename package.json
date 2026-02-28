@@ -2,7 +2,7 @@
   "name": "multi-folder-workspace-opener",
   "displayName": "Multi Folder Workspace Opener",
   "description": "Select multiple project folders and open them together in a single VS Code multi-root workspace.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "publisher": "GlobalWebify",
   "license": "MIT",
   "icon": "images/icon.png",
