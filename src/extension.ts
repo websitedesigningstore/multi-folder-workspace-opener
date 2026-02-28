@@ -1,11 +1,11 @@
 // =============================================================================
 // Multi Folder Workspace Opener – extension.ts
 // =============================================================================
-// This extension adds a command "Open Folders in One Workspace" that lets the
-// user pick multiple folders (configurable, default = 2) via native OS dialogs
-// and adds them all to the current VS Code multi-root workspace in one shot.
+// This extension provides TWO ways to open multiple folders in one workspace:
+//   1. Command Palette: "Multi Folder Workspace: Open Folders in One Workspace"
+//   2. Sidebar UI Panel: Click the icon in the Activity Bar → click the button
 //
-// Bonus features included:
+// Bonus features:
 //   • Configurable folder count  (multiFolderWorkspace.defaultFolderCount)
 //   • Auto-save / prompt-to-save .code-workspace file
 //   • Duplicate & already-in-workspace detection
@@ -14,55 +14,342 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 // ---------------------------------------------------------------------------
 // Activation
 // ---------------------------------------------------------------------------
 
-/**
- * Called by VS Code when the extension is first activated (i.e., when the
- * registered command is invoked for the first time).
- */
 export function activate(context: vscode.ExtensionContext): void {
     console.log('[Multi Folder Workspace Opener] Extension activated.');
 
-    const disposable = vscode.commands.registerCommand(
+    // 1. Register the command (Command Palette)
+    const commandDisposable = vscode.commands.registerCommand(
         'multiFolderWorkspace.openFolders',
         () => runOpenFoldersCommand()
     );
 
-    context.subscriptions.push(disposable);
+    // 2. Register the Sidebar WebviewView provider
+    const sidebarProvider = new SidebarProvider(context.extensionUri);
+    const viewDisposable = vscode.window.registerWebviewViewProvider(
+        'multiFolderWorkspace.sidebarView',
+        sidebarProvider
+    );
+
+    context.subscriptions.push(commandDisposable, viewDisposable);
 }
 
-/**
- * Called by VS Code when the extension is deactivated (e.g., VS Code shutdown).
- */
 export function deactivate(): void {
     console.log('[Multi Folder Workspace Opener] Extension deactivated.');
 }
 
 // ---------------------------------------------------------------------------
-// Command handler
+// Sidebar WebviewView Provider
 // ---------------------------------------------------------------------------
 
-/**
- * Main entry point for the "Open Folders in One Workspace" command.
- * Reads user settings, collects folder picks, validates them, adds them to
- * the workspace, and optionally saves a .code-workspace file.
- */
+class SidebarProvider implements vscode.WebviewViewProvider {
+    private _view?: vscode.WebviewView;
+
+    constructor(private readonly _extensionUri: vscode.Uri) { }
+
+    resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        _context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
+    ): void {
+        this._view = webviewView;
+
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [this._extensionUri],
+        };
+
+        // Render the initial HTML
+        webviewView.webview.html = this._getHtml();
+
+        // Listen for messages from the webview (button clicks)
+        webviewView.webview.onDidReceiveMessage(async (message) => {
+            switch (message.command) {
+                case 'openFolders':
+                    await runOpenFoldersCommand();
+                    // Refresh the workspace folder list shown in the sidebar
+                    this._refresh();
+                    break;
+                case 'refresh':
+                    this._refresh();
+                    break;
+            }
+        });
+
+        // Keep the sidebar in sync when workspace folders change
+        vscode.workspace.onDidChangeWorkspaceFolders(() => this._refresh());
+    }
+
+    /** Send updated folder list to the webview */
+    private _refresh(): void {
+        if (this._view) {
+            const folders = (vscode.workspace.workspaceFolders ?? []).map(f => ({
+                name: f.name,
+                path: f.uri.fsPath,
+            }));
+            this._view.webview.postMessage({ command: 'updateFolders', folders });
+        }
+    }
+
+    /** Build the full HTML for the sidebar panel */
+    private _getHtml(): string {
+        const folders = (vscode.workspace.workspaceFolders ?? []).map(f => ({
+            name: f.name,
+            path: f.uri.fsPath,
+        }));
+
+        const config = vscode.workspace.getConfiguration('multiFolderWorkspace');
+        const folderCount: number = config.get<number>('defaultFolderCount', 2);
+
+        return /* html */ `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi Folder Workspace Opener</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      color: var(--vscode-foreground);
+      background: var(--vscode-sideBar-background, transparent);
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Hero Button ── */
+    .btn-open {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 0;
+      border: none;
+      border-radius: 6px;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.2px;
+    }
+    .btn-open:hover  { opacity: 0.88; }
+    .btn-open:active { opacity: 0.75; transform: scale(0.98); }
+    .btn-open svg    { flex-shrink: 0; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--vscode-descriptionForeground);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2));
+    }
+
+    /* ── Folder list ── */
+    .folder-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 28px;
+    }
+
+    .folder-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 5px;
+      background: var(--vscode-list-hoverBackground, rgba(128,128,128,0.1));
+      border: 1px solid var(--vscode-widget-border, transparent);
+    }
+    .folder-item-icon { margin-top: 1px; flex-shrink: 0; opacity: 0.7; }
+    .folder-item-info { overflow: hidden; }
+    .folder-item-name {
+      font-weight: 600;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .folder-item-path {
+      font-size: 10px;
+      opacity: 0.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    .empty-state {
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      text-align: center;
+      padding: 10px 0 4px;
+      opacity: 0.75;
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--vscode-textBlockQuote-background, rgba(0,120,212,0.08));
+      border-left: 3px solid var(--vscode-textLink-foreground, #3794ff);
+      border-radius: 0 4px 4px 0;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: var(--vscode-foreground);
+      opacity: 0.9;
+    }
+    .info-box b { color: var(--vscode-textLink-foreground, #3794ff); }
+
+    /* ── Shortcut badge ── */
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--vscode-descriptionForeground);
+    }
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--vscode-keybindingLabel-background, rgba(128,128,128,0.2));
+      border: 1px solid var(--vscode-keybindingLabel-border, rgba(128,128,128,0.4));
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 10.5px;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Hero action button ── -->
+  <button class="btn-open" id="btnOpen">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.764c.415 0 .813.162 1.107.45l.686.672A.5.5 0 0 0 8.414 3.25h5.086A1.5 1.5 0 0 1 15 4.75v7.75A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5V3.5zm8 2.5H8V8H5.5v1H8v2.5h1V9h2.5V8H9V6z"/>
+    </svg>
+    Open Folders in Workspace
+  </button>
+
+  <!-- ── Current workspace folders ── -->
+  <div>
+    <div class="section-label">Current Workspace Folders</div>
+    <div class="folder-list" id="folderList">
+      ${this._renderFolderItems(folders)}
+    </div>
+  </div>
+
+  <!-- ── How to use tip ── -->
+  <div class="info-box">
+    <b>How to use:</b> Click the button above, then pick folders from the dialog that appears.
+    Both folders will open side-by-side in this window.<br><br>
+    <b>Picking ${folderCount} folder(s)</b> per run (change in Settings →
+    <i>multiFolderWorkspace.defaultFolderCount</i>).
+  </div>
+
+  <!-- ── Keyboard shortcut reminder ── -->
+  <div class="shortcut-row">
+    <span>Also available via Command Palette</span>
+    <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+
+    document.getElementById('btnOpen').addEventListener('click', () => {
+      vscode.postMessage({ command: 'openFolders' });
+    });
+
+    // Receive updated folder list from extension host
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (msg.command === 'updateFolders') {
+        document.getElementById('folderList').innerHTML = renderFolders(msg.folders);
+      }
+    });
+
+    function renderFolders(folders) {
+      if (!folders || folders.length === 0) {
+        return '<p class="empty-state">No folders in workspace yet.<br>Click the button above to add some!</p>';
+      }
+      return folders.map(f => \`
+        <div class="folder-item">
+          <div class="folder-item-icon">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" opacity="0.8">
+              <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.764c.415 0 .813.162 1.107.45l.686.672A.5.5 0 0 0 8.414 3.25h5.086A1.5 1.5 0 0 1 15 4.75v7.75A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5V3.5z"/>
+            </svg>
+          </div>
+          <div class="folder-item-info">
+            <div class="folder-item-name">\${escHtml(f.name)}</div>
+            <div class="folder-item-path">\${escHtml(f.path)}</div>
+          </div>
+        </div>
+      \`).join('');
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>`;
+    }
+
+    /** Render the initial folder list as HTML (server-side, before JS kicks in) */
+    private _renderFolderItems(folders: { name: string; path: string }[]): string {
+        if (folders.length === 0) {
+            return `<p class="empty-state">No folders in workspace yet.<br>Click the button above to add some!</p>`;
+        }
+        return folders
+            .map(
+                (f) => `
+      <div class="folder-item">
+        <div class="folder-item-icon">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" opacity="0.8">
+            <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.764c.415 0 .813.162 1.107.45l.686.672A.5.5 0 0 0 8.414 3.25h5.086A1.5 1.5 0 0 1 15 4.75v7.75A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5V3.5z"/>
+          </svg>
+        </div>
+        <div class="folder-item-info">
+          <div class="folder-item-name">${this._esc(f.name)}</div>
+          <div class="folder-item-path">${this._esc(f.path)}</div>
+        </div>
+      </div>`
+            )
+            .join('');
+    }
+
+    private _esc(s: string): string {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Command handler (shared by both command palette AND sidebar button)
+// ---------------------------------------------------------------------------
+
 async function runOpenFoldersCommand(): Promise<void> {
-    // Read configurable settings
     const config = vscode.workspace.getConfiguration('multiFolderWorkspace');
     const folderCount: number = config.get<number>('defaultFolderCount', 2);
     const autoSave: boolean = config.get<boolean>('autoSaveWorkspace', false);
 
-    // Step 1 – Collect folders from the user
     const selectedUris = await pickFolders(folderCount);
-
-    if (selectedUris === null) {
-        // User cancelled at some point – already notified inside pickFolders()
-        return;
-    }
+    if (selectedUris === null) { return; }
 
     if (selectedUris.length === 0) {
         vscode.window.showInformationMessage(
@@ -71,10 +358,8 @@ async function runOpenFoldersCommand(): Promise<void> {
         return;
     }
 
-    // Step 2 – Add the valid folders to the workspace
     addFoldersToWorkspace(selectedUris);
 
-    // Step 3 – Optionally save a .code-workspace file
     if (autoSave) {
         await saveWorkspaceFile(selectedUris);
     } else {
@@ -93,19 +378,7 @@ async function runOpenFoldersCommand(): Promise<void> {
 // Folder picking
 // ---------------------------------------------------------------------------
 
-/**
- * Prompts the user to select `count` folders one at a time.
- *
- * Returns:
- *   - An array of de-duplicated, valid `vscode.Uri` objects to add.
- *   - `null` when the user explicitly cancels a dialog (abort the command).
- *
- * Skips folders that:
- *   - Were already selected in a previous iteration (same-session duplicate).
- *   - Are already present in the current workspace.
- */
 async function pickFolders(count: number): Promise<vscode.Uri[] | null> {
-    // Build a Set of paths already in the workspace for O(1) look-ups
     const alreadyInWorkspace = new Set<string>(
         (vscode.workspace.workspaceFolders ?? []).map(f => normalise(f.uri.fsPath))
     );
@@ -114,16 +387,15 @@ async function pickFolders(count: number): Promise<vscode.Uri[] | null> {
     const pickedThisSession = new Set<string>();
 
     for (let i = 0; i < count; i++) {
-        const ordinal = ordinalLabel(i + 1, count);
+        const ordinal = ordinalLabel(i + 1);
         const picked = await vscode.window.showOpenDialog({
             canSelectFolders: true,
             canSelectFiles: false,
             canSelectMany: false,
             openLabel: `Select ${ordinal} Folder`,
-            title: `Multi Folder Workspace Opener – Select ${ordinal} Folder (${i + 1} / ${count})`,
+            title: `Select ${ordinal} Folder  (${i + 1} of ${count})`,
         });
 
-        // User pressed Cancel or closed the dialog
         if (!picked || picked.length === 0) {
             vscode.window.showInformationMessage('Folder selection cancelled.');
             return null;
@@ -132,18 +404,15 @@ async function pickFolders(count: number): Promise<vscode.Uri[] | null> {
         const uri = picked[0];
         const key = normalise(uri.fsPath);
 
-        // Duplicate within this session
         if (pickedThisSession.has(key)) {
             vscode.window.showInformationMessage(
-                `"${path.basename(uri.fsPath)}" was already selected – skipping.`
+                `"${path.basename(uri.fsPath)}" was already selected — skipping.`
             );
             continue;
         }
-
-        // Already part of the workspace
         if (alreadyInWorkspace.has(key)) {
             vscode.window.showInformationMessage(
-                `"${path.basename(uri.fsPath)}" is already in the workspace – skipping.`
+                `"${path.basename(uri.fsPath)}" is already in the workspace — skipping.`
             );
             continue;
         }
@@ -159,64 +428,32 @@ async function pickFolders(count: number): Promise<vscode.Uri[] | null> {
 // Workspace mutation
 // ---------------------------------------------------------------------------
 
-/**
- * Appends the given folder URIs to the current VS Code workspace.
- * Uses `updateWorkspaceFolders` which works for both:
- *   - No workspace open yet  → VS Code will switch to a transient multi-root workspace.
- *   - Existing workspace      → Folders are appended at the end.
- */
 function addFoldersToWorkspace(uris: vscode.Uri[]): void {
     const start = vscode.workspace.workspaceFolders?.length ?? 0;
-
     const success = vscode.workspace.updateWorkspaceFolders(
-        start,        // insert position (append)
-        null,         // number of folders to remove (none)
-        ...uris.map(uri => ({ uri }))
+        start, null, ...uris.map(uri => ({ uri }))
     );
-
     if (!success) {
-        vscode.window.showErrorMessage(
-            'Failed to add folders to the workspace. Please try again.'
-        );
+        vscode.window.showErrorMessage('Failed to add folders to the workspace. Please try again.');
     }
 }
 
 // ---------------------------------------------------------------------------
-// .code-workspace file saving (Bonus feature)
+// .code-workspace file saving
 // ---------------------------------------------------------------------------
 
-/**
- * Prompts the user to choose a save location and writes a `.code-workspace`
- * JSON file containing ALL current workspace folders (existing + newly added).
- *
- * After writing, VS Code is instructed to open the saved file so the workspace
- * becomes "named" (persisted) rather than transient.
- */
 async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
-    // Show save dialog
     const saveUri = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file(
-            path.join(require('os').homedir(), 'my-workspace.code-workspace')
-        ),
-        filters: {
-            'VS Code Workspace': ['code-workspace'],
-        },
+        defaultUri: vscode.Uri.file(path.join(os.homedir(), 'my-workspace.code-workspace')),
+        filters: { 'VS Code Workspace': ['code-workspace'] },
         title: 'Save Workspace File',
         saveLabel: 'Save',
     });
 
-    if (!saveUri) {
-        // User cancelled the save dialog – that's fine, not an error
-        return;
-    }
+    if (!saveUri) { return; }
 
-    // Collect ALL folders: existing ones + newly added ones
-    const existingFolders = (vscode.workspace.workspaceFolders ?? []).map(f => ({
-        path: f.uri.fsPath,
-    }));
+    const existingFolders = (vscode.workspace.workspaceFolders ?? []).map(f => ({ path: f.uri.fsPath }));
     const newFolders = newUris.map(u => ({ path: u.fsPath }));
-
-    // Merge and de-duplicate by normalised path
     const seen = new Set<string>(existingFolders.map(f => normalise(f.path)));
     const merged = [...existingFolders];
     for (const f of newFolders) {
@@ -226,22 +463,12 @@ async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
         }
     }
 
-    // Build the .code-workspace JSON structure
-    const workspaceContent = {
-        folders: merged,
-        settings: {},
-    };
+    const workspaceContent = { folders: merged, settings: {} };
 
     try {
         fs.writeFileSync(saveUri.fsPath, JSON.stringify(workspaceContent, null, 2), 'utf8');
-        vscode.window.showInformationMessage(
-            `Workspace saved to "${path.basename(saveUri.fsPath)}".`
-        );
-
-        // Open the saved workspace file so VS Code adopts it as the named workspace
-        await vscode.commands.executeCommand('vscode.openFolder', saveUri, {
-            forceNewWindow: false,
-        });
+        vscode.window.showInformationMessage(`Workspace saved to "${path.basename(saveUri.fsPath)}".`);
+        await vscode.commands.executeCommand('vscode.openFolder', saveUri, { forceNewWindow: false });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         vscode.window.showErrorMessage(`Failed to save workspace file: ${message}`);
@@ -252,22 +479,12 @@ async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
 // Utilities
 // ---------------------------------------------------------------------------
 
-/**
- * Normalises a file-system path for reliable cross-platform comparison.
- * On Windows, paths are lowercased since NTFS is case-insensitive.
- */
 function normalise(fsPath: string): string {
     const resolved = path.resolve(fsPath);
     return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-/**
- * Returns a human-readable ordinal label to use in dialog titles.
- * e.g. ordinalLabel(1, 2) → "1st"
- *      ordinalLabel(2, 2) → "2nd"
- *      ordinalLabel(3, 5) → "3rd"
- */
-function ordinalLabel(n: number, _total: number): string {
+function ordinalLabel(n: number): string {
     const suffixes = ['th', 'st', 'nd', 'rd'];
     const v = n % 100;
     return n + (suffixes[(v - 20) % 10] ?? suffixes[v] ?? suffixes[0]);

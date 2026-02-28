@@ -8,7 +8,7 @@
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/multi-folder-workspace-opener"
+    "url": "https://github.com/websitedesigningstore/multi-folder-workspace-opener"
   },
   "engines": {
     "vscode": "^1.75.0"
@@ -28,6 +28,26 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "multiFolderWorkspaceContainer",
+          "title": "Multi Folder Workspace",
+          "icon": "$(folder-library)"
+        }
+      ]
+    },
+    "views": {
+      "multiFolderWorkspaceContainer": [
+        {
+          "type": "webview",
+          "id": "multiFolderWorkspace.sidebarView",
+          "name": "Open Folders",
+          "icon": "$(folder-library)",
+          "contextualTitle": "Multi Folder Workspace Opener"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "multiFolderWorkspace.openFolders",
