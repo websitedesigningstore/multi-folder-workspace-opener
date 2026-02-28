@@ -1,0 +1,72 @@
+{
+  "name": "multi-folder-workspace-opener",
+  "displayName": "Multi Folder Workspace Opener",
+  "description": "Select multiple project folders and open them together in a single VS Code multi-root workspace.",
+  "version": "1.0.0",
+  "publisher": "GlobalWebify",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/multi-folder-workspace-opener"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "workspace",
+    "multi-root",
+    "folders",
+    "project",
+    "opener"
+  ],
+  "activationEvents": [
+    "onCommand:multiFolderWorkspace.openFolders"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "multiFolderWorkspace.openFolders",
+        "title": "Open Folders in One Workspace",
+        "category": "Multi Folder Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "Multi Folder Workspace Opener",
+      "properties": {
+        "multiFolderWorkspace.defaultFolderCount": {
+          "type": "number",
+          "default": 2,
+          "minimum": 2,
+          "maximum": 10,
+          "description": "Number of folders to select when running the 'Open Folders in One Workspace' command."
+        },
+        "multiFolderWorkspace.autoSaveWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically prompt to save a .code-workspace file after adding folders to the workspace."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "vsce:package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
