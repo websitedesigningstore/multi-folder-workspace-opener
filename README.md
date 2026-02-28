@@ -118,4 +118,4 @@ Go to **File → Preferences → Settings** and search **"Multi Folder Workspace
 
 ---
 
-*Made with ❤️ by [GlobalWebify](https://github.com/websitedesigningstore)*
+*Made with ❤️ by [GlobalWebify](https://globalwebify.com)*
