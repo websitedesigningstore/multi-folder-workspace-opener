@@ -1,90 +1,109 @@
 # Multi Folder Workspace Opener
 
-> **Open multiple project folders together in VS Code — in just 3 clicks!**
+Open multiple project folders together in VS Code in just a few clicks.
+
+Multi Folder Workspace Opener helps developers quickly open two or more folders inside a single VS Code multi-root workspace without manually editing a `.code-workspace` file.
+
+Perfect for full-stack development, microservices, and multi-project workflows.
 
 [![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/GlobalWebify.multi-folder-workspace-opener?label=VS%20Marketplace&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=GlobalWebify.multi-folder-workspace-opener)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/GlobalWebify.multi-folder-workspace-opener)](https://marketplace.visualstudio.com/items?itemName=GlobalWebify.multi-folder-workspace-opener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
-
-## 🤔 What Does This Extension Do?
-
-Ever needed to work on two or more projects **at the same time** in VS Code? Normally you'd have to manually edit a `.code-workspace` file. This extension does it for you instantly — either via a **clickable sidebar panel** or the **Command Palette**.
+> ⭐ If this extension helps you, please consider leaving a rating on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=GlobalWebify.multi-folder-workspace-opener).
 
 ---
 
-## 🕐 When Should You Use This?
+![Multi Folder Workspace Opener Demo](images/demo.gif)
 
-| Situation | Example |
+---
+
+## 🚀 Key Features
+
+- Open multiple folders in one VS Code workspace
+- Simple sidebar interface with one-click access
+- Command palette support
+- Automatically detect and skip duplicate folders
+- Optional `.code-workspace` file saving
+- Works with any type of project
+
+---
+
+## 💡 Common Use Cases
+
+This extension is useful when working with:
+
+| Scenario | Example |
 |---|---|
-| Frontend + Backend in different folders | `D:\Projects\app-frontend` + `D:\Projects\app-backend` |
-| Working on a library alongside your main project | `C:\libs\ui-components` + `D:\work\website` |
-| Comparing two versions of a project | `D:\Projects\v1` + `D:\Projects\v2` |
-| Multiple clients' projects side-by-side | Any two unrelated folders on your system |
+| Frontend + Backend development | `app-frontend` + `app-backend` |
+| Android app + API server | `mobile-app` + `api-server` |
+| React + Laravel | `frontend` + `backend` |
+| Comparing project versions | `project-v1` + `project-v2` |
+| Multiple repositories | `repo1` + `repo2` |
+| Working on a library alongside your main project | `ui-components` + `website` |
 
 ---
 
-## 🚀 How to Use
+## ⚡ How to Use
 
-### Method 1 — Sidebar UI (Recommended)
+### Method 1 — Sidebar (Recommended)
 
-1. Click the **folder icon** in the Activity Bar (left side) to open the panel
-2. Click the **"Open Folders in Workspace"** button
-3. Pick your folders from the dialogs that appear → Done! ✅
+1. Click the extension icon in the Activity Bar (left side)
+2. Click **Open Folders in Workspace**
+3. Select your folders from the dialog
 
-The panel also shows you all currently open workspace folders in real time.
+Done! Both folders will open in a single workspace.
 
 ---
 
 ### Method 2 — Command Palette
 
 1. Press `Ctrl+Shift+P`
-2. Type **`Open Folders in Workspace`**
-3. Select **"Multi Folder Workspace: Open Folders in One Workspace"**
-4. Pick your folders from the dialogs → Done! ✅
+2. Search for **`Open Folders in Workspace`**
+3. Select **Multi Folder Workspace: Open Folders in One Workspace**
+4. Pick your folders from the dialogs
 
 ---
 
-### After Selecting Folders
-
-Both folders appear in the **Explorer sidebar** as roots of a single workspace:
+## 📂 Example Workspace Structure
 
 ```
 EXPLORER
-├── 📁 my-frontend
+├── my-frontend
 │   ├── src/
 │   └── package.json
-└── 📁 my-backend
+└── my-backend
     ├── src/
     └── package.json
 ```
 
-You can now browse, edit, search, and run terminals across **both folders in one window**.
+You can now edit, search, run terminals, and manage both projects in one VS Code window.
 
 ---
 
-### Save the Workspace (Optional)
+## 💾 Save Workspace (Optional)
 
-After opening folders, a prompt will ask:
+After selecting folders, you can save them as a `.code-workspace` file.
 
-> **"Would you like to save this as a .code-workspace file?"**
+Benefits:
 
-- **Save Workspace** → Pick a location → Next time, just double-click that file to reopen both folders instantly!
-- **No Thanks** → Folders stay open for this session only
+- Reopen the same projects instantly by double-clicking the file
+- Share workspace setup with teammates
+- Organize multi-project environments
 
 ---
 
 ## ⚙️ Settings
 
-Go to **File → Preferences → Settings** and search **"Multi Folder Workspace"**:
+Go to **File → Preferences → Settings** and search **Multi Folder Workspace**:
 
 | Setting | Default | Description |
 |---|---|---|
-| `defaultFolderCount` | `2` | How many folders to pick (2–10) |
-| `autoSaveWorkspace` | `false` | Always save a `.code-workspace` file automatically without prompting |
+| `defaultFolderCount` | `2` | Number of folders to select (2–10) |
+| `autoSaveWorkspace` | `false` | Automatically save workspace file without prompting |
 
 **Example — pick 3 folders at once:**
+
 ```json
 {
   "multiFolderWorkspace.defaultFolderCount": 3
@@ -101,18 +120,20 @@ Go to **File → Preferences → Settings** and search **"Multi Folder Workspace
 
 ---
 
-## ❓ Troubleshooting
+## 🛠 Troubleshooting
 
 | Problem | Solution |
 |---|---|
-| Sidebar panel not visible | Click the folder icon in the Activity Bar on the left |
-| Command not found | Make sure extension is enabled. Try `Ctrl+Shift+P` → "Reload Window" |
-| "Failed to add folders" error | Restart VS Code and try again. Still broken? [Open an issue](https://github.com/websitedesigningstore/multi-folder-workspace-opener/issues) |
-| Saved workspace not opening both folders | Make sure both folder paths still exist on your system |
+| Sidebar not visible | Click the folder icon in the Activity Bar or reload VS Code |
+| Command not found | Press `Ctrl+Shift+P` → **Reload Window** |
+| Workspace not opening | Check if the folder paths still exist on your system |
+| "Failed to add folders" error | Restart VS Code and try again |
 
 ---
 
-## 🐛 Found a Bug? Have a Feature Request?
+## ❤️ Contributing
+
+Found a bug or have a feature request?
 
 👉 **[Open an issue on GitHub](https://github.com/websitedesigningstore/multi-folder-workspace-opener/issues)**
 

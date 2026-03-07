@@ -105,12 +105,14 @@ class SidebarProvider implements vscode.WebviewViewProvider {
 
         const config = vscode.workspace.getConfiguration('multiFolderWorkspace');
         const folderCount: number = config.get<number>('defaultFolderCount', 2);
+        const nonce = getNonce();
 
         return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <title>Multi Folder Workspace Opener</title>
   <style>
     /* ── Reset & Base ── */
@@ -269,7 +271,7 @@ class SidebarProvider implements vscode.WebviewViewProvider {
     <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd>
   </div>
 
-  <script>
+  <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
 
     document.getElementById('btnOpen').addEventListener('click', () => {
@@ -478,6 +480,15 @@ async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+
+function getNonce(): string {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
 
 function normalise(fsPath: string): string {
     const resolved = path.resolve(fsPath);
