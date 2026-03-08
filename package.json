@@ -1,11 +1,15 @@
 {
   "name": "multi-folder-workspace-opener",
   "displayName": "Multi Folder Workspace Opener",
-  "description": "Select multiple project folders and open them together in a single VS Code multi-root workspace.",
+  "description": "Open multiple project folders instantly in a single VS Code multi-root workspace. Perfect for frontend + backend development, Android + API projects, and multi-project workflows.",
   "version": "2.0.0",
   "publisher": "GlobalWebify",
   "license": "MIT",
   "icon": "images/icon.png",
+  "homepage": "https://github.com/websitedesigningstore/multi-folder-workspace-opener",
+  "bugs": {
+    "url": "https://github.com/websitedesigningstore/multi-folder-workspace-opener/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/websitedesigningstore/multi-folder-workspace-opener"
@@ -19,9 +23,12 @@
   "keywords": [
     "workspace",
     "multi-root",
-    "folders",
-    "project",
-    "opener"
+    "multi-folder",
+    "multiple-folders",
+    "workspace-manager",
+    "multi-project",
+    "developer-tools",
+    "productivity"
   ],
   "activationEvents": [
     "onCommand:multiFolderWorkspace.openFolders"
