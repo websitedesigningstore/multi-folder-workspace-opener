@@ -10,9 +10,9 @@ Perfect for full-stack development, microservices, and multi-project workflows.
 [![Open VSX Downloads](https://img.shields.io/open-vsx/dt/websitedesigningstore/multi-folder-workspace-opener)](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-📦 Available on [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener) and the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-opener).
+📦 Available on [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener) and the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-manager).
 
-> ⭐ If this extension helps you, please consider leaving a rating on [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener) or the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-opener).
+> ⭐ If this extension helps you, please consider leaving a rating on [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener) or the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-manager).
 
 ---
 

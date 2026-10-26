@@ -110,10 +110,10 @@ Or via VS Code UI: Extensions panel → `...` (three dots) → **Install from VS
 
 ## 🌐 Publishing
 
-The extension is published under the same `websitedesigningstore` ID on both stores:
+The extension is published by `websitedesigningstore` on both stores:
 
 - [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener)
-- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-opener)
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-manager)
 
 Bump the `version` in `package.json` before each release — neither store accepts a version that already exists.
 
