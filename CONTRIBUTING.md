@@ -91,7 +91,7 @@ Uses `@typescript-eslint` with the rules defined in `.eslintrc.json`.
 
 ## 📦 Packaging
 
-Creates a `.vsix` file that can be installed locally or published to the Marketplace.
+Creates a `.vsix` file that can be installed locally or published to Open VSX.
 
 ```bash
 npx vsce package
@@ -108,31 +108,61 @@ Or via VS Code UI: Extensions panel → `...` (three dots) → **Install from VS
 
 ---
 
-## 🌐 Publishing to the VS Code Marketplace
+## 🌐 Publishing
 
-### Prerequisites
+The extension is published under the same `websitedesigningstore` ID on both stores:
 
-1. Create a publisher account at [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage)
-2. Generate a **Personal Access Token (PAT)** in [Azure DevOps](https://dev.azure.com) under **User Settings → Personal Access Tokens** with scope: **Marketplace → Manage**
-3. Ensure `package.json` has `"publisher": "GlobalWebify"`
+- [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener)
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-opener)
 
-### Login and Publish
+Bump the `version` in `package.json` before each release — neither store accepts a version that already exists.
+
+### VS Code Marketplace
+
+1. Create the `websitedesigningstore` publisher at [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage)
+2. Generate a **Personal Access Token (PAT)** in [Azure DevOps](https://dev.azure.com) under **User Settings → Personal Access Tokens** with scope **Marketplace → Manage** (Organization: *All accessible organizations*)
+3. Publish:
 
 ```bash
-npx vsce login GlobalWebify
+npx vsce login websitedesigningstore
 npx vsce publish
 ```
 
-To publish a specific version:
+### Open VSX (automatic, via GitHub Actions)
+
+[`.github/workflows/publish.yml`](.github/workflows/publish.yml) publishes to Open VSX with **trusted publishing (OIDC)** — no token is stored in GitHub.
+
+One-time setup:
+
+1. On [open-vsx.org → Settings → Trusted Publishers](https://open-vsx.org/user-settings/trusted-publishers), add a GitHub publisher:
+   - Owner: `websitedesigningstore`
+   - Repository: `multi-folder-workspace-opener`
+   - Workflow filename: `publish.yml`
+   - Environment: leave empty
+2. Do **not** add an `OVSX_PAT` secret — a token always takes precedence over OIDC.
+
+To release:
+
 ```bash
-npx vsce publish 1.0.1
+# bump "version" in package.json, commit, then:
+git tag v3.0.1
+git push origin main v3.0.1
 ```
 
-To auto-bump the version:
+The workflow fails if the tag doesn't match the `package.json` version.
+
+### Open VSX (manual)
+
+1. Sign in at [open-vsx.org](https://open-vsx.org) and create an **Access Token** under **Settings → Access Tokens**
+2. Publish:
+
 ```bash
-npx vsce publish patch   # 1.0.0 → 1.0.1
-npx vsce publish minor   # 1.0.0 → 1.1.0
-npx vsce publish major   # 1.0.0 → 2.0.0
+npx ovsx publish -p <OPEN_VSX_TOKEN>
+```
+
+To publish an already-packaged `.vsix`:
+```bash
+npx ovsx publish multi-folder-workspace-opener-<version>.vsix -p <OPEN_VSX_TOKEN>
 ```
 
 ---
@@ -145,7 +175,7 @@ npx vsce publish major   # 1.0.0 → 2.0.0
 | `watch` | `tsc -watch -p ./` | Re-compile on file changes |
 | `lint` | `eslint src --ext ts` | Lint TypeScript source |
 | `vsce:package` | `vsce package` | Create `.vsix` package |
-| `vscode:prepublish` | `npm run compile` | Auto-runs before `vsce publish` |
+| `vscode:prepublish` | `npm run compile` | Auto-runs before packaging / publishing |
 
 ---
 

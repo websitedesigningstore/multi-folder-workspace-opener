@@ -52,11 +52,7 @@ class SidebarProvider implements vscode.WebviewViewProvider {
 
     constructor(private readonly _extensionUri: vscode.Uri) { }
 
-    resolveWebviewView(
-        webviewView: vscode.WebviewView,
-        _context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken
-    ): void {
+    resolveWebviewView(webviewView: vscode.WebviewView): void {
         this._view = webviewView;
 
         webviewView.webview.options = {
@@ -67,8 +63,10 @@ class SidebarProvider implements vscode.WebviewViewProvider {
         // Render the initial HTML
         webviewView.webview.html = this._getHtml();
 
+        const disposables: vscode.Disposable[] = [];
+
         // Listen for messages from the webview (button clicks)
-        webviewView.webview.onDidReceiveMessage(async (message) => {
+        disposables.push(webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.command) {
                 case 'openFolders':
                     await runOpenFoldersCommand();
@@ -79,10 +77,23 @@ class SidebarProvider implements vscode.WebviewViewProvider {
                     this._refresh();
                     break;
             }
-        });
+        }));
 
         // Keep the sidebar in sync when workspace folders change
-        vscode.workspace.onDidChangeWorkspaceFolders(() => this._refresh());
+        disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(() => this._refresh()));
+
+        // Re-render when the folder count setting changes
+        disposables.push(vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration('multiFolderWorkspace.defaultFolderCount')) {
+                webviewView.webview.html = this._getHtml();
+            }
+        }));
+
+        // Release listeners when the view is closed, so re-opening it doesn't stack them
+        webviewView.onDidDispose(() => {
+            disposables.forEach(d => d.dispose());
+            this._view = undefined;
+        });
     }
 
     /** Send updated folder list to the webview */
@@ -260,7 +271,7 @@ class SidebarProvider implements vscode.WebviewViewProvider {
   <!-- ── How to use tip ── -->
   <div class="info-box">
     <b>How to use:</b> Click the button above, then pick folders from the dialog that appears.
-    Both folders will open side-by-side in this window.<br><br>
+    The selected folders will open side-by-side in this window.<br><br>
     <b>Picking ${folderCount} folder(s)</b> per run (change in Settings →
     <i>multiFolderWorkspace.defaultFolderCount</i>).
   </div>
@@ -360,20 +371,23 @@ async function runOpenFoldersCommand(): Promise<void> {
         return;
     }
 
-    addFoldersToWorkspace(selectedUris);
-
-    if (autoSave) {
-        await saveWorkspaceFile(selectedUris);
-    } else {
+    // Decide about saving BEFORE touching the workspace: adding folders to an
+    // empty or single-folder window restarts the extension host, which would
+    // kill any prompt shown afterwards.
+    let save = autoSave;
+    if (!save) {
         const answer = await vscode.window.showInformationMessage(
-            `Added ${selectedUris.length} folder(s) to the workspace. Would you like to save this as a .code-workspace file?`,
+            `Adding ${selectedUris.length} folder(s) to the workspace. Would you like to save this as a .code-workspace file?`,
             'Save Workspace',
-            'No Thanks'
+            'Just Add Folders'
         );
-        if (answer === 'Save Workspace') {
-            await saveWorkspaceFile(selectedUris);
-        }
+        save = answer === 'Save Workspace';
     }
+
+    // Opening the saved workspace file already brings in all folders
+    if (save && await saveWorkspaceFile(selectedUris)) { return; }
+
+    addFoldersToWorkspace(selectedUris);
 }
 
 // ---------------------------------------------------------------------------
@@ -444,7 +458,8 @@ function addFoldersToWorkspace(uris: vscode.Uri[]): void {
 // .code-workspace file saving
 // ---------------------------------------------------------------------------
 
-async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
+/** Returns true if the workspace file was written and opened. */
+async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<boolean> {
     const saveUri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(path.join(os.homedir(), 'my-workspace.code-workspace')),
         filters: { 'VS Code Workspace': ['code-workspace'] },
@@ -452,7 +467,7 @@ async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
         saveLabel: 'Save',
     });
 
-    if (!saveUri) { return; }
+    if (!saveUri) { return false; }
 
     const existingFolders = (vscode.workspace.workspaceFolders ?? []).map(f => ({ path: f.uri.fsPath }));
     const newFolders = newUris.map(u => ({ path: u.fsPath }));
@@ -471,9 +486,11 @@ async function saveWorkspaceFile(newUris: vscode.Uri[]): Promise<void> {
         fs.writeFileSync(saveUri.fsPath, JSON.stringify(workspaceContent, null, 2), 'utf8');
         vscode.window.showInformationMessage(`Workspace saved to "${path.basename(saveUri.fsPath)}".`);
         await vscode.commands.executeCommand('vscode.openFolder', saveUri, { forceNewWindow: false });
+        return true;
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         vscode.window.showErrorMessage(`Failed to save workspace file: ${message}`);
+        return false;
     }
 }
 

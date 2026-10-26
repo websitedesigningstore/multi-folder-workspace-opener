@@ -1,0 +1,51 @@
+# Publishes the extension to Open VSX using trusted publishing (OIDC).
+# No access token is stored: the registry exchanges this workflow's OIDC
+# ID token for a short-lived publish token.
+#
+# Open VSX registration (open-vsx.org → Settings → Trusted Publishers):
+#   Owner: websitedesigningstore
+#   Repository: multi-folder-workspace-opener
+#   Workflow filename: publish.yml
+#   Environment: (none)
+#
+# Release: bump "version" in package.json, commit, then push a matching tag:
+#   git tag v3.0.1 && git push origin v3.0.1
+
+name: Publish to Open VSX
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$PKG_VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - run: npm run lint
+
+      # --trusted-publishing fails instead of silently falling back if no
+      # OIDC token is available. Do not set OVSX_PAT: it would take precedence.
+      - run: npx --yes ovsx@1.2.0 publish --trusted-publishing

@@ -6,11 +6,13 @@ Multi Folder Workspace Opener helps developers quickly open two or more folders 
 
 Perfect for full-stack development, microservices, and multi-project workflows.
 
-[![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/GlobalWebify.multi-folder-workspace-opener?label=VS%20Marketplace&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=GlobalWebify.multi-folder-workspace-opener)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/GlobalWebify.multi-folder-workspace-opener)](https://marketplace.visualstudio.com/items?itemName=GlobalWebify.multi-folder-workspace-opener)
+[![Open VSX](https://img.shields.io/open-vsx/v/websitedesigningstore/multi-folder-workspace-opener?label=Open%20VSX)](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener)
+[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/websitedesigningstore/multi-folder-workspace-opener)](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> ⭐ If this extension helps you, please consider leaving a rating on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=GlobalWebify.multi-folder-workspace-opener).
+📦 Available on [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener) and the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-opener).
+
+> ⭐ If this extension helps you, please consider leaving a rating on [Open VSX](https://open-vsx.org/extension/websitedesigningstore/multi-folder-workspace-opener) or the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=websitedesigningstore.multi-folder-workspace-opener).
 
 ---
 
